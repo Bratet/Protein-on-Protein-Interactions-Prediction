@@ -61,6 +61,11 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# pssms
+dbs/generated/pssms/
+dbs/SwissProt/
+dbs/generated/*.json
+
 # Flask stuff:
 instance/
 .webassets-cache

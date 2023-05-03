@@ -75,10 +75,8 @@ class DBUtils:
 
     # generate the PSSM matrices of our DB by comparing the sequences to the swissprot database
     # using the command line tool psiblast
-    def generate_pssm_matrices(self, evalue=0.001, num_iterations=3, num_threads=16):
-        # Set the paths to the input and output files
-        input_file = "../dbs/generated/sequences.fasta"
-        output_dir = "../dbs/generated/pssms/"
+    def generate_pssm_matrices(self, input_file = "../dbs/generated/sequences.fasta", output_dir = "../dbs/generated/pssms/", evalue=0.001, num_iterations=3, num_threads=16):
+        # Set the paths to the db
         db = "../dbs/SwissProt/swissprot"
 
         # Set the parameters for the psiblast command

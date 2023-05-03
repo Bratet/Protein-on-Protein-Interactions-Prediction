@@ -60,11 +60,11 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+database.ini
 
 # pssms
-dbs/generated/pssms/
+dbs/generated/*
 dbs/SwissProt/*
-dbs/generated/*.json
 
 # Flask stuff:
 instance/

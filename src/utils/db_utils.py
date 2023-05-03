@@ -6,7 +6,6 @@ from Bio.Blast.Applications import NcbipsiblastCommandline
 
 class DBUtils:
 
-    
     # generate a fasta file containing all the proteins in the database in the format:
     # {protein_id : protein_sequence}
     def generate_protein_fasta(self):

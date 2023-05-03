@@ -68,9 +68,29 @@ class PSSMUtils:
             print("Updated PSSM data saved to JSON file.")
     
     @staticmethod
-    def pssm_to_text(pssm):
-        text = ""
-        for row in pssm:
-            text += f"{row} "
-            text += ","
-        return text[:-2]
+    def pssm_to_postgresql(lst):
+        """
+        Convert a 2D Python list of integers to a PostgreSQL 2D array string.
+        
+        Args:
+        lst (list): A 2D Python list of integers.
+        
+        Returns:
+        str: A PostgreSQL 2D array string representation of the input list.
+        """
+        if len(lst) == 2 and type(lst[1] == int):
+            lst = lst[0]
+        
+        result = '{'
+        for i, row in enumerate(lst):
+            result += '{'
+            for j, value in enumerate(row):
+                result += str(value)
+                if j < len(row) - 1:
+                    result += ','
+            result += '}'
+            if i < len(lst) - 1:
+                result += ','
+        result += '}'
+        return result
+        

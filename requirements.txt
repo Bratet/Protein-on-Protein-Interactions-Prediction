@@ -1,0 +1,8 @@
+biopython
+pandas
+numpy
+networkx
+matplotlib
+scikit-learn
+scipy
+torch_geometric

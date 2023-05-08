@@ -6,3 +6,5 @@ matplotlib
 scikit-learn
 scipy
 torch_geometric
+torch
+scikit-optimize

@@ -3,6 +3,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from .feature_utils import extract_features
+import tensorflow_gnn as tfgnn
 
 class ProteinInteractionGraph:
     
@@ -16,18 +17,24 @@ class ProteinInteractionGraph:
         
         self.graph, self.adjacency_matrix, self.node_features = self.generate_graph(negative_interaction_method)
         
+        self.node_mapping = {node: i for i, node in enumerate(self.graph.nodes)}
+        
         
     def generate_graph(self, negative_interaction_method='most_distant'):
         # Create an empty graph
         G = nx.Graph()
 
         # Add nodes with features
-        for protein_id, sequence in self.protein_sequences.items():
-            G.add_node(protein_id, features=extract_features(sequence))
+        for i, (protein_id, sequence) in enumerate(self.protein_sequences.items()):
+            basic_protein_properties, secondary_structure_content, other_properties, amino_acid_composition = extract_features(sequence)
+            G.add_node(i, id=protein_id, basic_protein_properties=basic_protein_properties,
+                       secondary_structure_content=secondary_structure_content,
+                       other_properties=other_properties, amino_acid_composition=amino_acid_composition)
 
         # Add positive interactions (edges) with label 1
+        id_to_index = {node[1]["id"]: node[0] for node in G.nodes(data=True)}  # Create the id to index mapping
         for idx, row in self.df.iterrows():
-            G.add_edge(row['Interactor 1 RefSeq id'], row['Interactor 2 RefSeq id'], label=1)
+            G.add_edge(id_to_index[row['Interactor 1 RefSeq id']], id_to_index[row['Interactor 2 RefSeq id']], label=1)
             
 
         # Generate negative interactions using the specified method
@@ -48,9 +55,12 @@ class ProteinInteractionGraph:
         adjacency_matrix = nx.adjacency_matrix(G).toarray()
 
         # Generate a feature matrix for the nodes (proteins)
-        node_features = np.array([G.nodes[n]['features'] for n in G.nodes], dtype=np.float64)
+        basic_protein_properties = np.array([G.nodes[n]['basic_protein_properties'] for n in G.nodes], dtype=np.float64)
+        secondary_structure_content = np.array([G.nodes[n]['secondary_structure_content'] for n in G.nodes], dtype=np.float64)
+        other_properties = np.array([G.nodes[n]['other_properties'] for n in G.nodes], dtype=np.float64)
+        amino_acid_composition = np.array([G.nodes[n]['amino_acid_composition'] for n in G.nodes], dtype=np.float64)
         
-        return G, adjacency_matrix, node_features
+        return G, adjacency_matrix, (basic_protein_properties, secondary_structure_content, other_properties, amino_acid_composition)
         
     def read_sequences_from_fasta(self, fasta_file):
         protein_sequences = {}
@@ -91,15 +101,38 @@ class ProteinInteractionGraph:
         negative_interactions = non_edges_sorted[:len(self.df)]
         return negative_interactions
     
-    def visualize(self):
-        # Use spring layout for better visualization
-        pos = nx.spring_layout(self.graph, seed=42)
+    def get_graph_tensor(self):
+        
+        basic_protein_properties, secondary_structure_content, other_properties, amino_acid_composition = self.node_features
 
-        # Draw nodes, labels, and edges with custom properties
-        nx.draw(self.graph, pos, node_size=600, node_color='skyblue', with_labels=True, font_size=10, font_weight='bold', width=1.5)
+        edge_sources = np.array([self.node_mapping[e[0]] for e in self.graph.edges], dtype=np.int32)
+        edge_targets = np.array([self.node_mapping[e[1]] for e in self.graph.edges], dtype=np.int32)
         
-        # Set the title
-        plt.title("Protein Interaction Graph")
+        graph_tensor = tfgnn.GraphTensor.from_pieces(
+            node_sets= {
+                'Proteins': tfgnn.NodeSet.from_fields(
+                    sizes = [len(self.graph.nodes)],
+                    features = {
+                        'basic_protein_properties': basic_protein_properties,
+                        'secondary_structure_content': secondary_structure_content,
+                        'other_properties': other_properties,
+                        'amino_acid_composition': amino_acid_composition,
+                    }
+                )
+            },
+            edge_sets= {
+                'Interactions': tfgnn.EdgeSet.from_fields(
+                    sizes = [len(self.graph.edges)],
+                    features = {
+                        'labels': np.array([self.graph.edges[e]['label'] for e in self.graph.edges], dtype=np.int32),
+                    },
+                    adjacency = tfgnn.Adjacency.from_indices(
+                        source = ("Proteins", edge_sources),
+                        target = ("Proteins", edge_targets),
+                )
+            )
+            }
+        )
         
-        # Show the graph
-        plt.show()
+        
+        return graph_tensor

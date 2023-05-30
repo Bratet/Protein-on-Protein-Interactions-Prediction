@@ -31,23 +31,26 @@ def extract_features(sequence):
     # Compute cysteine content
     cysteine_content = clean_sequence.count('C') / len(clean_sequence)
     
-    # Combine the features into a single array
-    features = [
+    amino_acid_percent = protein_analysis.get_amino_acids_percent()
+    
+    # Basic protein properties
+    basic_protein_properties = [
         molecular_weight,
         isoelectric_point,
         instability_index,
         aromaticity,
-        gravy,
-        helix,
-        sheet,
-        coil,
-        aliphatic_index_value,
-        charged_aa_content,
-        cysteine_content
+        gravy
     ]
-    
-    amino_acid_percent = protein_analysis.get_amino_acids_percent()
-    
-    features.extend(amino_acid_percent.values())
 
-    return features
+    # Secondary structure content
+    secondary_structure_content = [helix, sheet, coil]
+
+    # Other properties
+    other_properties = [aliphatic_index_value, charged_aa_content, cysteine_content]
+
+    # Amino acid composition
+    amino_acid_composition = list(amino_acid_percent.values())
+
+    return basic_protein_properties, secondary_structure_content, other_properties, amino_acid_composition
+
+

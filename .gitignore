@@ -63,8 +63,8 @@ db.sqlite3-journal
 database.ini
 
 # pssms
-dbs/generated/*
-dbs/SwissProt/*
+dbs/
+data/
 
 # Flask stuff:
 instance/

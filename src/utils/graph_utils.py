@@ -4,13 +4,13 @@ import numpy as np
 import tensorflow_gnn as tfgnn
 from sklearn.model_selection import KFold
 import json
+import matplotlib.pyplot as plt
 
 class GraphToTensor:
     
-    DATA_PATH = "../dbs/data2_no_self_interactions.csv"
-    FEATURES_PATH = "../dbs/id_features_data2.json"
-    
-    def __init__(self, negative_interaction_method='most_distant'):
+    def __init__(self, DATA_PATH, FEATURES_PATH, negative_interaction_method='most_distant'):
+        self.DATA_PATH = DATA_PATH
+        self.FEATURES_PATH = FEATURES_PATH
         self.df = self.load_data()
         self.features = self.load_features()
         self.graph, self.adjacency_matrix, self.node_features = self.generate_graph(negative_interaction_method)
@@ -42,15 +42,19 @@ class GraphToTensor:
     def add_positive_interactions(self, G):
         id_to_index = {node[1]["id"]: node[0] for node in G.nodes(data=True)}  # Create the id to index mapping
         for idx, row in self.df.iterrows():
-            G.add_edge(id_to_index[row['Interactor A']], id_to_index[row['Interactor B']], label=1)
+            try:
+                G.add_edge(id_to_index[row['Interactor A']], id_to_index[row['Interactor B']], label=1)
+            except:
+                continue
 
     def add_negative_interactions(self, G, negative_interaction_method):
-        if negative_interaction_method == 'random_pairs':
-            negative_interactions = self.random_pairs(G)
-        elif negative_interaction_method == 'same_degree_distribution':
+
+        if negative_interaction_method == 'same_degree_distribution':
             negative_interactions = self.same_degree_distribution(G)
         elif negative_interaction_method == 'most_close':
             negative_interactions = self.most_close(G)
+        elif negative_interaction_method == 'common_neighbors':
+            negative_interactions = self.common_neighbors(G)
         else:  # most_distant
             negative_interactions = self.most_distant(G)
         for pair in negative_interactions:
@@ -83,14 +87,18 @@ class GraphToTensor:
         negative_interactions = non_edges_sorted[:len(self.df)]
         return negative_interactions
 
-    def most_distant(self, positive_graph):
-        mean_vector = self.calculate_mean_feature_vector(positive_graph)
-        non_edges = list(nx.non_edges(positive_graph))
-        non_edges_sorted = sorted(non_edges, key=lambda x: np.linalg.norm(self.features[positive_graph.nodes[x[0]]['id']]['amino_acid_composition'] - mean_vector + self.features[positive_graph.nodes[x[1]]['id']]['amino_acid_composition'] - mean_vector), reverse=True)
+    def most_distant(self, graph):
+        mean_vector = self.calculate_mean_feature_vector(graph)
+        non_edges = list(nx.non_edges(graph))
+        non_edges_sorted = sorted(non_edges, key=lambda x: np.linalg.norm(self.features[graph.nodes[x[0]]['id']]['amino_acid_composition'] - mean_vector + self.features[graph.nodes[x[1]]['id']]['amino_acid_composition'] - mean_vector), reverse=True)
         negative_interactions = non_edges_sorted[:len(self.df)]
         return negative_interactions
-
-
+    
+    def common_neighbors(self, graph):
+        non_edges = list(nx.non_edges(graph))
+        non_edges_sorted = sorted(non_edges, key=lambda x: len(list(nx.common_neighbors(graph, x[0], x[1]))))
+        negative_interactions = non_edges_sorted[:len(self.df)]
+        return negative_interactions
 
     def get_graph_tensor(self, graph):
         edge_sources = np.array([self.node_mapping[e[0]] for e in graph.edges], dtype=np.int32)
@@ -169,6 +177,15 @@ class GraphToTensor:
         if graph is None:
             raise ValueError("Graph has not been generated yet.")
         return self.get_graph_tensor(graph)
+    
+    def vizualize_graph(self, graph):
+        # use calculate_mean_feature_vector of the whole graph to calculate the mean vector and plot the graph with the mean vector
+        mean_vector = self.calculate_mean_feature_vector(graph)
+        pos = nx.spring_layout(graph)
+        plt.figure(figsize=(20, 20))
+        nx.draw_networkx_nodes(graph, pos, node_size=100, cmap=plt.cm.RdYlBu, node_color=list(mean_vector))
+        nx.draw_networkx_edges(graph, pos, alpha=0.3)
+        plt.show()
 
 
 

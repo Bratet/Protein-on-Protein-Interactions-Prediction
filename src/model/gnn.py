@@ -1,18 +1,6 @@
 import tensorflow as tf
 import tensorflow_gnn as tfgnn
 
-def set_initial_node_state(node_set, node_set_name):
-    features = [
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['basic_protein_properties']    ),
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['secondary_structure_content']),
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['other_properties']),
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['amino_acid_composition']),
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['pssm_sum']),
-        tf.keras.layers.Dense(32,activation="leaky_relu")(node_set['S_vector']),
-        
-    ]
-    return tf.keras.layers.Concatenate()(features)
-
 def set_initial_edge_state(edge_set, edge_set_name):
     
     return tfgnn.keras.layers.MakeEmptyFeature()(edge_set)

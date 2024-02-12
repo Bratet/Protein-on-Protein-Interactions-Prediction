@@ -63,7 +63,6 @@ db.sqlite3-journal
 database.ini
 
 # pssms
-dbs/
 data/
 
 # Flask stuff:
